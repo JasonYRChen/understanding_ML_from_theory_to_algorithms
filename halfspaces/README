@@ -1,0 +1,19 @@
+**********************************************************************
+Version 1
+
+This version can only accept fully seperable bipartite dataset. Every
+datum has a coordinate in length of m and a corresponding signed number 
+that is either +1 or -1, which is used to partition the dataset. Let 
+datum be Xi, which is a m length vector, and its corresponding signed
+number be Yi for which i = 1 ~ n and n is the total number of data. The 
+linear equation used to partition the data has a form of W @ X + b = 0,
+where W is a m length vector of linear coefficients, @ is a dot operator,
+and b is a constant. We can then reform the equation to W' @ X' = 0 in
+which W' is the original W with an additional coefficient b, and X' is
+the X with an additional constant of 1. Here both W' and X' are in length
+of m + 1.
+Now, if the partition is done, condition Yi * (W' @ Xi') > 0 holds for
+every datum, since we've assumed the data is fully seperable. Our work
+is to iterate W' so that for every Xi and Yi satisfies the inequality.
+For any (Xi, Yi) that the inequality not hold, we use W'' = W' + Yi * Xi
+in new iteration.
