@@ -72,17 +72,43 @@ def decision_stumps(data: list[list[float]], labels: list[int],
                 best_stump = (prev_pos + current_pos) / 2
     return best_dim, best_stump, best_loss
 
+
+def decision_stumps_classifier(data: list[list[float]], labels: list[int], 
+        distributions: list[float], positive_first: bool = True):
+
+    """
+        Output classified labels with decision stump algorithm.
+
+        paras:
+          data: n x d array-like, the data to learn.
+          labels: n x 1 array of 1 or -1, specifying the category of 
+            corresponding data.
+          distributions: n x 1 array of [0, 1] floats, pointing out the
+            probability of each data.
+          positive_first: bool, True if it's 1 in labels to find first,
+            False otherwise.
+
+        return:
+          new_labels: n x 1 array of 1 and -1, a hypothesis of the labels
+            of data.
+    """
+
+    sign = 1 if positive_first else -1
+    dim, stump, _ = decision_stumps(data, labels, distributions, positive_first)
+    new_labels = np.where(data[:, dim] < stump, sign, -sign)
+    return new_labels
+
     
 if __name__ == '__main__':
     sign = 1 # 1 or -1
 #    data = (np.random.rand(100, 5) - 0.5) * 100
     data = (np.random.rand(100, 2) - 0.5) * 100
     # spread in x direction
-#    data[:, 0].sort()
-#    labels = np.where(data[:, 0] > -9, -1 * sign, 1 * sign)
+    data[:, 0].sort()
+    labels = np.where(data[:, 0] > -1, -1 * sign, 1 * sign)
     # spread in y direction
-    data[:, 1].sort()
-    labels = np.where(data[:, 1] > 9, -1 * sign, 1 * sign) # y-direction
+#    data[:, 1].sort()
+#    labels = np.where(data[:, 1] > 1, -1 * sign, 1 * sign) # y-direction
 
     np.random.shuffle(labels[40:60])
     distributions = np.random.rand(data.shape[0])
@@ -109,4 +135,8 @@ if __name__ == '__main__':
     colors_new = np.where(labels_guess > 0, 'b', 'r')
     plt.scatter(data[:, 0], data[:, 1], c=colors_new, s=sizes)
     plt.plot(stump_plot[:, 0], stump_plot[:, 1], c='g')
+
+    plt.figure()
+    color_guess = np.where(decision_stumps_classifier(data, labels, distributions, True if sign > 0 else False) > 0, 'b', 'r')
+    plt.scatter(data[:, 0], data[:, 1], c=color_guess, s=sizes)
     plt.show()
