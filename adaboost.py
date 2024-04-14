@@ -41,6 +41,36 @@ def adaboost_function(data: np.ndarray, labels: np.ndarray, cycles: int):
     return hypotheses
 
 
+def adaboost_test(data: np.ndarray, labels: np.ndarray, cycles: int):
+    """
+        This is a test to another loss function, which depresses correct 
+        classification to only 1 instead of a much smaller decimal, which
+        could be useful to classify multi-class
+    """
+
+    if not isinstance(data, np.ndarray):
+        data = np.array(data)
+    if not isinstance(labels, np.ndarray):
+        labels = np.array(labels)
+
+    distributions = np.full(data.shape[0], 1/data.shape[0])
+    hypotheses = np.zeros(data.shape[0])
+    for i in range(cycles):
+        hypothesis = decision_stump_classifier(data, labels, distributions)
+        error = sum(distributions[hypothesis != labels])
+        if not error: # perfect classified, no need further learning
+            break
+#        weight = np.log(1/error - 1) * 0.5
+#        hypotheses += weight * hypothesis 
+#        distributions *= np.exp(weight * np.where(labels != hypothesis, 1, -1))
+        weight = np.log(1/error - 1) 
+        hypotheses += weight * hypothesis 
+        distributions *= np.exp(weight * np.where(labels != hypothesis, 1, 0))
+        distributions /= sum(distributions)
+    hypotheses = np.where(hypotheses > 0, 1, -1)
+    return hypotheses
+
+
 def adaboost_function_demo(data: np.ndarray, labels: np.ndarray, cycles: int):
     distributions = np.full(data.shape[0], 1/data.shape[0])
     hypotheses = np.zeros(data.shape[0])
@@ -141,6 +171,13 @@ if __name__ == '__main__':
     
     # adaboost demo
     adaboost_function_demo(data, labels, cycles)
+
+    # adaboost test
+    labels_guess = adaboost_test(data, labels, cycles)
+    print(f'Error from adaboost test: {sum(labels != labels_guess)}')
+    colors_new = np.where(labels_guess > 0, 'b', 'r')
+    plt.figure('adaboost test')
+    plt.scatter(data[:, 0], data[:, 1], c=colors_new)
 
 
     plt.show()
