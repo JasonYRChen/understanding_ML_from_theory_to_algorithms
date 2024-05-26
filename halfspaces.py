@@ -71,14 +71,30 @@ def halfspaces(x: list[list[float]], y: list[int], intercept_on=True) ->\
     return w, 
 
 
+def seperable_data_generation(coef, intercept, data_number):
+    """ 
+        Given coefficients and intercept of a linear equation, return the
+        given number of seperable dataset and their bipartite label 
+        counterparts.
+    """
+
+    coef = np.array(coef)
+    data = (np.random.rand(data_number, len(coef)) - 0.5) * 10
+    y = data.dot(coef) + intercept
+    while np.any(y == 0): # data on the linear line is never allowed
+        index = np.argmax(y == 0)
+        data[index] = (np.random.rand(len(coef)) - 0.5) * 10
+        y[index] = data[index].dot(coef) + intercept
+    y = np.where(y > 0, 1, -1) 
+    return data, y
+
+
 if __name__ == '__main__':
-    x1 = [[n / j for n in range(4, 6)] for j in range(1, 5)]
-    x2 = [[3, 4], [1, 7], [-1, 3], [-4, -4]]
-    y = [1, 1, -1, -1]
-#    pprint(x)
-    x = x1
-    x = np.array(x)
-    y = np.array(y)
-    print('x\n', x)
-    print('y\n', y)
-    print(halfspaces(x, y, True))
+    coef = [3, 4, 5]
+    intercept = -2
+    data_number = 2000 
+    data, label = seperable_data_generation(coef, intercept, data_number)
+    print(f'training data:\n{data}\nlabel:\n{label}\n')
+    print(f'original coefficients: {coef}, intercept: {intercept}')
+    coef_guess, itcpt = halfspaces(data, label)
+    print(f'guess coefficients: {coef_guess}\nguess intercept: {itcpt}')
