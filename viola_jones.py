@@ -9,10 +9,10 @@ from collections import namedtuple, deque
 from decision_stumps import decision_stump
 
 
-PATH_OBJECT_TRAINING = '../facesDB_ai_MIT/train/face/'
-PATH_NON_OBJECT_TRAINING = '../facesDB_ai_MIT/train/non-face/'
-PATH_OBJECT_TESTING = '../facesDB_ai_MIT/test/face/'
-PATH_NON_OBJECT_TESTING = '../facesDB_ai_MIT/test/non-face/'
+PATH_OBJECT_TRAINING = './facesDB_ai_MIT/train/face/'
+PATH_NON_OBJECT_TRAINING = './facesDB_ai_MIT/train/non-face/'
+PATH_OBJECT_TESTING = './facesDB_ai_MIT/test/face/'
+PATH_NON_OBJECT_TESTING = './facesDB_ai_MIT/test/non-face/'
 
 
 Region = namedtuple('Region', 'x y width height')
@@ -56,10 +56,10 @@ class ViolaJonesCascade:
                 return -1
         return 1
 
-    def _predict(self, image, is_integral_image=False, filename='mit_face_X'):
+    def _predict(self, image, is_integral_image=False, scale=1, filename='mit_face_X'):
         value = 0 
         for i, vj in enumerate(self.vjs):
-            temp = vj.predict(image, is_integral_image)
+            temp = vj.predict(image, is_integral_image, scale)
             if temp < 0:
                 return -1
             value += temp
@@ -165,14 +165,17 @@ class ViolaJonesCascade:
             for x in range(img_w - width + 1):
                 for y in range(img_h - height + 1):
                     ii = ii_whole[y:y+height, x:x+width]
-                    value = self._predict(ii, True)
+                    value = self._predict(ii, True, scale)
                     if value > 0:
                         regions.append(Region(x, y, width, height))
                         weights.append(value)
 
-            width = int(width * scaling)
-            height = int(height * scaling)
-            scale = int(scale * scaling)
+#            width = int(width * scaling)
+#            height = int(height * scaling)
+#            scale = int(scale * scaling)
+            width = int(width * scaling + 1)
+            height = int(height * scaling + 1)
+            scale = scale * scaling
 
         # nms, frame, and show framed picture
 #        frames = self.nms(regions, weights, threshold)
@@ -259,12 +262,13 @@ class ViolaJones:
         return features
 
     @staticmethod
-    def get_intensity(region: Region, integral_image):
+    def get_intensity(region: Region, integral_image, scale=1):
         """
             Get the sum of intensity of a region in integral image.
         """
 
-        x, y, w, h = region.x, region.y, region.width, region.height
+        x, y, w, h = int(region.x * scale), int(region.y * scale),\
+                     int(region.width * scale), int(region.height * scale)
         point_a = integral_image[y+h, x+w]
         point_b = integral_image[y, x]
         point_c = integral_image[y+h, x]
@@ -273,9 +277,9 @@ class ViolaJones:
         intensity = point_a + point_b - point_c - point_d
         return intensity
 
-    def region_difference(self, integral_image, p_regions, n_regions):
-        value_p = sum(self.get_intensity(g, integral_image) for g in p_regions)
-        value_n = sum(self.get_intensity(g, integral_image) for g in n_regions)
+    def region_difference(self, integral_image, p_regions, n_regions, scale=1):
+        value_p = sum(self.get_intensity(g, integral_image, scale) for g in p_regions)
+        value_n = sum(self.get_intensity(g, integral_image, scale) for g in n_regions)
 #        value = value_p - value_n
         value = (value_p - value_n) / (value_p + value_n + 10**(-12))
         return value
@@ -332,7 +336,7 @@ class ViolaJones:
         features = self.make_features(*(iis[0].shape))
         print(f'Complete features. Total features: {len(features)}')
         # load X from file if exist, or calculate it from scratch
-        save_X_name = filename + '_data.npy'
+        save_X_name = filename + '_dataset.npy'
         if os.path.isfile(save_X_name):
             print('Loading X from file')
             X = np.fromfile(save_X_name).reshape(len(iis), -1)
@@ -346,11 +350,11 @@ class ViolaJones:
         print('Ready for adaboost')
         self.adaboost(X, y, features)
 
-    def predict(self, image, is_integral_image=False):
+    def predict(self, image, is_integral_image=False, scale=1):
         predict = 0
+        ii = image if is_integral_image else self.integral_intensity(image)
         for w, f, s, p in zip(self.weights, self.features, self.stumps, self.polarities):
-            ii = image if is_integral_image else self.integral_intensity(image)
-            value = self.region_difference(ii, f[0], f[1])
+            value = self.region_difference(ii, f[0], f[1], scale)
             predict += w * np.where(value < s, p, -p)
         return predict
 #        return np.sign(predict)
@@ -408,7 +412,8 @@ if __name__ == '__main__':
 #    y_hat_cascade = np.array([vj_cascade.predict(i) for i in images_testing])
 #    error_cascade = sum(y_hat_cascade != y_testing) / len(y_testing)
 #    print(f'Error of cascade: {error_cascade * 100:.2f}%')
+
     face = '09'
-    threshold = 0.4
+    threshold = 0.6
 #    vj_cascade.face_detection(f'./face{face}.jpg', threshold)
     vj_cascade.face_detection(f'./face{face}.png', threshold)
