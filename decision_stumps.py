@@ -119,7 +119,7 @@ def decision_stump_multiclass(X: np.ndarray, y: np.ndarray,
         y_int[y == label] = i
 
     # loss of each y element at the beginning
-    losses = np.empty(len(index_to_y))
+    losses = np.zeros(len(index_to_y))
     for i in range(len(losses)):
         losses[i] = sum(sample_weight[y_int == i])
 
